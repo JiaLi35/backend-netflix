@@ -5,6 +5,9 @@ const mongoose = require("mongoose");
 // setup an express app
 const app = express();
 
+// set up a middleware to handle JSON request
+app.use(express.json());
+
 // connect to MongoDB using Mongoose
 async function connectToMongoDB() {
   try {
