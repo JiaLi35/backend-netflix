@@ -4,6 +4,14 @@ const router = express.Router();
 // import the movie
 const Movie = require("../models/movie");
 
+const {
+  getMovies,
+  getMovie,
+  addMovie,
+  updateMovie,
+  deleteMovie,
+} = require("../controllers/movie");
+
 /*
   Routes for movies
   GET /movies - list all the movies
@@ -23,37 +31,18 @@ router.get("/", async (req, res) => {
   const director = req.query.director;
   const genre = req.query.genre;
   const rating = req.query.rating;
+  const movies = await getMovies(genre, rating, director);
 
-  // create an empty container for filter
-  let filter = {};
-
-  // if director exists, then only add it into the filter container
-  if (director) {
-    filter.director = director;
-  }
-
-  // if genre exists, then only add it into the filter container
-  if (genre) {
-    filter.genre = genre;
-  }
-
-  // if rating exists, then only add it into the filter container
-  if (rating) {
-    filter.rating = { $gt: rating };
-  }
-
-  // load the movies data from mongoDB
-  const movies = await Movie.find(filter);
-  res.send(movies);
+  res.status(200).send(movies);
 });
 
 // GET /movies/:id - get a specific movie
 router.get("/:id", async (req, res) => {
   // retrieve id from params
   const id = req.params.id;
-  // load the movie data based on id
-  const movie = await Movie.findById(id);
-  res.send(movie);
+  // longer method
+  const movie = await getMovie(id);
+  res.status(200).send(movie);
 });
 
 /*
@@ -80,17 +69,10 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // create new movie
-    const newMovie = new Movie({
-      title: title,
-      director: director,
-      release_year: release_year,
-      genre: genre,
-      rating: rating,
-    });
-    // save the new movie into mongodb
-    await newMovie.save(); // clicking the "save" button
-    res.send(newMovie);
+    res
+      .status(200)
+      // short hand
+      .send(await addMovie(title, director, release_year, genre, rating));
   } catch (error) {
     res.status(400).send({ message: "Unknown error" });
   }
@@ -113,21 +95,11 @@ router.put("/:id", async (req, res) => {
       });
     }
 
-    const updatedMovie = await Movie.findByIdAndUpdate(
-      id,
-      {
-        title: title,
-        director: director,
-        release_year: release_year,
-        genre: genre,
-        rating: rating,
-      },
-      {
-        new: true, // return the updated data
-      }
-    );
-
-    res.status(200).send(updatedMovie);
+    res
+      .status(200)
+      .send(
+        await updateMovie(id, title, director, release_year, genre, rating)
+      );
   } catch (error) {
     res.status(400).send({ message: "Unknown error" });
   }
@@ -137,7 +109,7 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    await Movie.findByIdAndDelete(id);
+    await deleteMovie(id);
     res
       .status(200)
       .send({ message: `Movie with the ID of ${id} has been deleted.` });
